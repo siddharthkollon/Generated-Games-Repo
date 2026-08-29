@@ -2,10 +2,14 @@ import random
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-# Refresh the app every 200 ms
+# ----------------------------------------------------------------------
+# Auto‑refresh ticker – first line of execution
+# ----------------------------------------------------------------------
 st_autorefresh(interval=200, key="game_loop_ticker")
 
-# ---------- State Initialization ----------
+# ----------------------------------------------------------------------
+# Session state initialization (one block per key)
+# ----------------------------------------------------------------------
 if "grid_width" not in st.session_state:
     st.session_state.grid_width = 40
 if "grid_height" not in st.session_state:
@@ -32,12 +36,14 @@ if "score_left" not in st.session_state:
 if "score_right" not in st.session_state:
     st.session_state.score_right = 0
 
-# ---------- Physics (runs every tick) ----------
+# ----------------------------------------------------------------------
+# Physics – runs on every tick before UI handling
+# ----------------------------------------------------------------------
 # Move ball
 st.session_state.ball_x += st.session_state.ball_dx
 st.session_state.ball_y += st.session_state.ball_dy
 
-# Bounce off top/bottom walls
+# Bounce off top / bottom walls
 if st.session_state.ball_y <= 0:
     st.session_state.ball_y = 0
     st.session_state.ball_dy *= -1
@@ -45,7 +51,7 @@ elif st.session_state.ball_y >= st.session_state.grid_height - 1:
     st.session_state.ball_y = st.session_state.grid_height - 1
     st.session_state.ball_dy *= -1
 
-# Paddle positions
+# Paddle X positions (fixed)
 left_paddle_x = 1
 right_paddle_x = st.session_state.grid_width - 2
 
@@ -83,7 +89,7 @@ if (
     else:
         st.session_state.ball_dy = 0
 
-# Scoring
+# Scoring and ball reset
 if st.session_state.ball_x < 0:
     st.session_state.score_right += 1
     st.session_state.ball_x = st.session_state.grid_width // 2
@@ -97,4 +103,72 @@ elif st.session_state.ball_x >= st.session_state.grid_width:
     st.session_state.ball_dx = -1
     st.session_state.ball_dy = random.choice([-1, 0, 1])
 
-# Simpl
+# ----------------------------------------------------------------------
+# User controls – only modify simple state variables
+# ----------------------------------------------------------------------
+col_left, col_mid, col_right = st.columns([1, 2, 1])
+
+with col_left:
+    if st.button("⬆️", key="left_up"):
+        st.session_state.paddle_left_y = max(
+            0, st.session_state.paddle_left_y - 1
+        )
+    if st.button("⬇️", key="left_down"):
+        st.session_state.paddle_left_y = min(
+            st.session_state.grid_height - st.session_state.paddle_size,
+            st.session_state.paddle_left_y + 1,
+        )
+
+with col_mid:
+    st.metric("Left Player", st.session_state.score_left, key="metric_left")
+    st.metric("Right Player", st.session_state.score_right, key="metric_right")
+    if st.button("Restart Game", key="restart_btn"):
+        st.session_state.score_left = 0
+        st.session_state.score_right = 0
+        st.session_state.ball_x = st.session_state.grid_width // 2
+        st.session_state.ball_y = st.session_state.grid_height // 2
+        st.session_state.ball_dx = random.choice([-1, 1])
+        st.session_state.ball_dy = random.choice([-1, 0, 1])
+        st.session_state.paddle_left_y = (st.session_state.grid_height - st.session_state.paddle_size) // 2
+        st.session_state.paddle_right_y = (st.session_state.grid_height - st.session_state.paddle_size) // 2
+        st.rerun()
+
+with col_right:
+    if st.button("⬆️", key="right_up"):
+        st.session_state.paddle_right_y = max(
+            0, st.session_state.paddle_right_y - 1
+        )
+    if st.button("⬇️", key="right_down"):
+        st.session_state.paddle_right_y = min(
+            st.session_state.grid_height - st.session_state.paddle_size,
+            st.session_state.paddle_right_y + 1,
+        )
+
+# ----------------------------------------------------------------------
+# Render playfield
+# ----------------------------------------------------------------------
+# Base empty grid
+grid = [["⬜" for _ in range(st.session_state.grid_width)] for _ in range(st.session_state.grid_height)]
+
+# Left paddle (🟦)
+for i in range(st.session_state.paddle_size):
+    y = st.session_state.paddle_left_y + i
+    if 0 <= y < st.session_state.grid_height:
+        grid[y][left_paddle_x] = "🟦"
+
+# Right paddle (🟥)
+for i in range(st.session_state.paddle_size):
+    y = st.session_state.paddle_right_y + i
+    if 0 <= y < st.session_state.grid_height:
+        grid[y][right_paddle_x] = "🟥"
+
+# Ball (🏓)
+if (
+    0 <= st.session_state.ball_y < st.session_state.grid_height
+    and 0 <= st.session_state.ball_x < st.session_state.grid_width
+):
+    grid[st.session_state.ball_y][st.session_state.ball_x] = "🏓"
+
+# Convert to string for display
+board_str = "\n".join("".join(row) for row in grid)
+st.code(board_str, language="text")
