@@ -2,173 +2,144 @@ import random
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-# ----------------------------------------------------------------------
-# Auto‑refresh ticker – first line of execution
-# ----------------------------------------------------------------------
-st_autorefresh(interval=200, key="game_loop_ticker")
+# Refresh interval (150 ms)
+st_autorefresh(interval=150, key="game_loop_ticker")
 
-# ----------------------------------------------------------------------
-# Session state initialization (one block per key)
-# ----------------------------------------------------------------------
-if "grid_width" not in st.session_state:
-    st.session_state.grid_width = 40
-if "grid_height" not in st.session_state:
-    st.session_state.grid_height = 20
-if "paddle_size" not in st.session_state:
-    st.session_state.paddle_size = 4
+# Game dimensions
+WIDTH = 20
+HEIGHT = 12
+PADDLE_SIZE = 3
 
+# Initialize session state variables
 if "ball_x" not in st.session_state:
-    st.session_state.ball_x = st.session_state.grid_width // 2
+    st.session_state.ball_x = WIDTH // 2
 if "ball_y" not in st.session_state:
-    st.session_state.ball_y = st.session_state.grid_height // 2
+    st.session_state.ball_y = HEIGHT // 2
 if "ball_dx" not in st.session_state:
     st.session_state.ball_dx = random.choice([-1, 1])
 if "ball_dy" not in st.session_state:
     st.session_state.ball_dy = random.choice([-1, 0, 1])
+if "p1_y" not in st.session_state:
+    st.session_state.p1_y = HEIGHT // 2 - PADDLE_SIZE // 2
+if "p2_y" not in st.session_state:
+    st.session_state.p2_y = HEIGHT // 2 - PADDLE_SIZE // 2
+if "p1_dir" not in st.session_state:
+    st.session_state.p1_dir = 0
+if "p2_dir" not in st.session_state:
+    st.session_state.p2_dir = 0
+if "score1" not in st.session_state:
+    st.session_state.score1 = 0
+if "score2" not in st.session_state:
+    st.session_state.score2 = 0
+if "game_over" not in st.session_state:
+    st.session_state.game_over = False
 
-if "paddle_left_y" not in st.session_state:
-    st.session_state.paddle_left_y = (st.session_state.grid_height - st.session_state.paddle_size) // 2
-if "paddle_right_y" not in st.session_state:
-    st.session_state.paddle_right_y = (st.session_state.grid_height - st.session_state.paddle_size) // 2
+# Apply paddle movements
+if not st.session_state.game_over:
+    st.session_state.p1_y = max(
+        0, min(HEIGHT - PADDLE_SIZE, st.session_state.p1_y + st.session_state.p1_dir)
+    )
+    st.session_state.p2_y = max(
+        0, min(HEIGHT - PADDLE_SIZE, st.session_state.p2_y + st.session_state.p2_dir)
+    )
+# Reset movement flags
+st.session_state.p1_dir = 0
+st.session_state.p2_dir = 0
 
-if "score_left" not in st.session_state:
-    st.session_state.score_left = 0
-if "score_right" not in st.session_state:
-    st.session_state.score_right = 0
+# Update ball position and handle collisions
+if not st.session_state.game_over:
+    st.session_state.ball_x += st.session_state.ball_dx
+    st.session_state.ball_y += st.session_state.ball_dy
 
-# ----------------------------------------------------------------------
-# Physics – runs on every tick before UI handling
-# ----------------------------------------------------------------------
-# Move ball
-st.session_state.ball_x += st.session_state.ball_dx
-st.session_state.ball_y += st.session_state.ball_dy
+    # Top / bottom wall bounce
+    if st.session_state.ball_y <= 0 or st.session_state.ball_y >= HEIGHT - 1:
+        st.session_state.ball_dy *= -1
 
-# Bounce off top / bottom walls
-if st.session_state.ball_y <= 0:
-    st.session_state.ball_y = 0
-    st.session_state.ball_dy *= -1
-elif st.session_state.ball_y >= st.session_state.grid_height - 1:
-    st.session_state.ball_y = st.session_state.grid_height - 1
-    st.session_state.ball_dy *= -1
+    # Left wall (Player 1 side)
+    if st.session_state.ball_x <= 0:
+        # Check paddle collision
+        if st.session_state.p1_y <= st.session_state.ball_y < st.session_state.p1_y + PADDLE_SIZE:
+            st.session_state.ball_dx = 1
+            # Add a little vertical variation
+            st.session_state.ball_dy = random.choice([-1, 0, 1])
+        else:
+            # Player 2 scores
+            st.session_state.score2 += 1
+            # Reset ball
+            st.session_state.ball_x = WIDTH // 2
+            st.session_state.ball_y = HEIGHT // 2
+            st.session_state.ball_dx = 1
+            st.session_state.ball_dy = random.choice([-1, 0, 1])
 
-# Paddle X positions (fixed)
-left_paddle_x = 1
-right_paddle_x = st.session_state.grid_width - 2
+    # Right wall (Player 2 side)
+    if st.session_state.ball_x >= WIDTH - 1:
+        if st.session_state.p2_y <= st.session_state.ball_y < st.session_state.p2_y + PADDLE_SIZE:
+            st.session_state.ball_dx = -1
+            st.session_state.ball_dy = random.choice([-1, 0, 1])
+        else:
+            st.session_state.score1 += 1
+            st.session_state.ball_x = WIDTH // 2
+            st.session_state.ball_y = HEIGHT // 2
+            st.session_state.ball_dx = -1
+            st.session_state.ball_dy = random.choice([-1, 0, 1])
 
-# Collision with left paddle
-if (
-    st.session_state.ball_dx < 0
-    and st.session_state.ball_x == left_paddle_x + 1
-    and st.session_state.paddle_left_y
-    <= st.session_state.ball_y
-    < st.session_state.paddle_left_y + st.session_state.paddle_size
-):
-    st.session_state.ball_dx *= -1
-    offset = st.session_state.ball_y - st.session_state.paddle_left_y
-    if offset == 0:
-        st.session_state.ball_dy = -1
-    elif offset == st.session_state.paddle_size - 1:
-        st.session_state.ball_dy = 1
-    else:
-        st.session_state.ball_dy = 0
+# Determine win condition (first to 10)
+if not st.session_state.game_over:
+    if st.session_state.score1 >= 10 or st.session_state.score2 >= 10:
+        st.session_state.game_over = True
 
-# Collision with right paddle
-if (
-    st.session_state.ball_dx > 0
-    and st.session_state.ball_x == right_paddle_x - 1
-    and st.session_state.paddle_right_y
-    <= st.session_state.ball_y
-    < st.session_state.paddle_right_y + st.session_state.paddle_size
-):
-    st.session_state.ball_dx *= -1
-    offset = st.session_state.ball_y - st.session_state.paddle_right_y
-    if offset == 0:
-        st.session_state.ball_dy = -1
-    elif offset == st.session_state.paddle_size - 1:
-        st.session_state.ball_dy = 1
-    else:
-        st.session_state.ball_dy = 0
+# UI Controls
+col1, col2, col3 = st.columns([1, 2, 1])
 
-# Scoring and ball reset
-if st.session_state.ball_x < 0:
-    st.session_state.score_right += 1
-    st.session_state.ball_x = st.session_state.grid_width // 2
-    st.session_state.ball_y = st.session_state.grid_height // 2
-    st.session_state.ball_dx = 1
-    st.session_state.ball_dy = random.choice([-1, 0, 1])
-elif st.session_state.ball_x >= st.session_state.grid_width:
-    st.session_state.score_left += 1
-    st.session_state.ball_x = st.session_state.grid_width // 2
-    st.session_state.ball_y = st.session_state.grid_height // 2
-    st.session_state.ball_dx = -1
-    st.session_state.ball_dy = random.choice([-1, 0, 1])
+with col1:
+    st.button("⬆️", key="p1_up", on_click=lambda: st.session_state.update(p1_dir=-1))
+    st.button("⬇️", key="p1_down", on_click=lambda: st.session_state.update(p1_dir=1))
 
-# ----------------------------------------------------------------------
-# User controls – only modify simple state variables
-# ----------------------------------------------------------------------
-col_left, col_mid, col_right = st.columns([1, 2, 1])
+with col3:
+    st.button("⬆️", key="p2_up", on_click=lambda: st.session_state.update(p2_dir=-1))
+    st.button("⬇️", key="p2_down", on_click=lambda: st.session_state.update(p2_dir=1))
 
-with col_left:
-    if st.button("⬆️", key="left_up"):
-        st.session_state.paddle_left_y = max(
-            0, st.session_state.paddle_left_y - 1
-        )
-    if st.button("⬇️", key="left_down"):
-        st.session_state.paddle_left_y = min(
-            st.session_state.grid_height - st.session_state.paddle_size,
-            st.session_state.paddle_left_y + 1,
-        )
+# Scoreboard
+st.markdown(
+    f"**Player 1:** {st.session_state.score1} &nbsp;&nbsp; **Player 2:** {st.session_state.score2}",
+    unsafe_allow_html=True,
+)
 
-with col_mid:
-    st.metric("Left Player", st.session_state.score_left, key="metric_left")
-    st.metric("Right Player", st.session_state.score_right, key="metric_right")
-    if st.button("Restart Game", key="restart_btn"):
-        st.session_state.score_left = 0
-        st.session_state.score_right = 0
-        st.session_state.ball_x = st.session_state.grid_width // 2
-        st.session_state.ball_y = st.session_state.grid_height // 2
-        st.session_state.ball_dx = random.choice([-1, 1])
-        st.session_state.ball_dy = random.choice([-1, 0, 1])
-        st.session_state.paddle_left_y = (st.session_state.grid_height - st.session_state.paddle_size) // 2
-        st.session_state.paddle_right_y = (st.session_state.grid_height - st.session_state.paddle_size) // 2
-        st.rerun()
+# Render game board
+grid = [["⬜" for _ in range(WIDTH)] for _ in range(HEIGHT)]
 
-with col_right:
-    if st.button("⬆️", key="right_up"):
-        st.session_state.paddle_right_y = max(
-            0, st.session_state.paddle_right_y - 1
-        )
-    if st.button("⬇️", key="right_down"):
-        st.session_state.paddle_right_y = min(
-            st.session_state.grid_height - st.session_state.paddle_size,
-            st.session_state.paddle_right_y + 1,
-        )
+# Place paddles
+for i in range(PADDLE_SIZE):
+    grid[st.session_state.p1_y + i][0] = "🟦"
+    grid[st.session_state.p2_y + i][WIDTH - 1] = "🟦"
 
-# ----------------------------------------------------------------------
-# Render playfield
-# ----------------------------------------------------------------------
-# Base empty grid
-grid = [["⬜" for _ in range(st.session_state.grid_width)] for _ in range(st.session_state.grid_height)]
+# Place ball
+if 0 <= st.session_state.ball_y < HEIGHT and 0 <= st.session_state.ball_x < WIDTH:
+    grid[st.session_state.ball_y][st.session_state.ball_x] = "⚪"
 
-# Left paddle (🟦)
-for i in range(st.session_state.paddle_size):
-    y = st.session_state.paddle_left_y + i
-    if 0 <= y < st.session_state.grid_height:
-        grid[y][left_paddle_x] = "🟦"
-
-# Right paddle (🟥)
-for i in range(st.session_state.paddle_size):
-    y = st.session_state.paddle_right_y + i
-    if 0 <= y < st.session_state.grid_height:
-        grid[y][right_paddle_x] = "🟥"
-
-# Ball (🏓)
-if (
-    0 <= st.session_state.ball_y < st.session_state.grid_height
-    and 0 <= st.session_state.ball_x < st.session_state.grid_width
-):
-    grid[st.session_state.ball_y][st.session_state.ball_x] = "🏓"
-
-# Convert to string for display
 board_str = "\n".join("".join(row) for row in grid)
 st.code(board_str, language="text")
+
+# Restart button
+if st.button("Restart Game", key="restart_btn"):
+    for key in [
+        "ball_x",
+        "ball_y",
+        "ball_dx",
+        "ball_dy",
+        "p1_y",
+        "p2_y",
+        "p1_dir",
+        "p2_dir",
+        "score1",
+        "score2",
+        "game_over",
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
+    st.rerun()
+
+# Game over message
+if st.session_state.game_over:
+    winner = "Player 1" if st.session_state.score1 > st.session_state.score2 else "Player 2"
+    st.success(f"Game Over! {winner} wins!")
