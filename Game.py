@@ -57,15 +57,11 @@ if not st.session_state.game_over:
 
     # Left wall (Player 1 side)
     if st.session_state.ball_x <= 0:
-        # Check paddle collision
         if st.session_state.p1_y <= st.session_state.ball_y < st.session_state.p1_y + PADDLE_SIZE:
             st.session_state.ball_dx = 1
-            # Add a little vertical variation
             st.session_state.ball_dy = random.choice([-1, 0, 1])
         else:
-            # Player 2 scores
             st.session_state.score2 += 1
-            # Reset ball
             st.session_state.ball_x = WIDTH // 2
             st.session_state.ball_y = HEIGHT // 2
             st.session_state.ball_dx = 1
@@ -83,7 +79,7 @@ if not st.session_state.game_over:
             st.session_state.ball_dx = -1
             st.session_state.ball_dy = random.choice([-1, 0, 1])
 
-# Determine win condition (first to 10)
+# Win condition (first to 10)
 if not st.session_state.game_over:
     if st.session_state.score1 >= 10 or st.session_state.score2 >= 10:
         st.session_state.game_over = True
@@ -113,9 +109,9 @@ for i in range(PADDLE_SIZE):
     grid[st.session_state.p1_y + i][0] = "🟦"
     grid[st.session_state.p2_y + i][WIDTH - 1] = "🟦"
 
-# Place ball
+# Place ball (red)
 if 0 <= st.session_state.ball_y < HEIGHT and 0 <= st.session_state.ball_x < WIDTH:
-    grid[st.session_state.ball_y][st.session_state.ball_x] = "⚪"
+    grid[st.session_state.ball_y][st.session_state.ball_x] = "🔴"
 
 board_str = "\n".join("".join(row) for row in grid)
 st.code(board_str, language="text")
