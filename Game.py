@@ -62,13 +62,13 @@ if "action" not in st.session_state:
 
 def get_cells():
     shape = pieces[st.session_state.current_piece]
-    rotation = st.session_state.rotation % len(shape)
-    return shape[rotation]
+    rot = st.session_state.rotation % len(shape)
+    return shape[rot]
 
-def can_place(row_offset, col_offset, cells):
+def can_place(r_offset, c_offset, cells):
     for r, c in cells:
-        nr = row_offset + r
-        nc = col_offset + c
+        nr = r_offset + r
+        nc = c_offset + c
         if nr < 0 or nr >= height or nc < 0 or nc >= width:
             return False
         if st.session_state.board[nr][nc]:
@@ -99,6 +99,20 @@ def spawn_piece():
     if not can_place(st.session_state.piece_row, st.session_state.piece_col, get_cells()):
         st.session_state.game_over = True
 
+def set_action(value):
+    st.session_state.action = value
+
+def reset_game():
+    st.session_state.board = [[0] * width for _ in range(height)]
+    st.session_state.current_piece = random.choice(list(pieces.keys()))
+    st.session_state.rotation = 0
+    st.session_state.piece_row = 0
+    st.session_state.piece_col = width // 2 - 2
+    st.session_state.score = 0
+    st.session_state.game_over = False
+    st.session_state.action = None
+    st.rerun()
+
 if st.session_state.action == "LEFT":
     if not st.session_state.game_over:
         if can_place(st.session_state.piece_row, st.session_state.piece_col - 1, get_cells()):
@@ -124,3 +138,13 @@ if not st.session_state.game_over:
         st.session_state.piece_row += 1
     else:
         lock_piece()
+        clear_lines()
+        spawn_piece()
+
+display_grid = [[ "⬛" if cell == 0 else "🟥" for cell in row] for row in st.session_state.board]
+cells = get_cells()
+for r, c in cells:
+    nr = st.session_state.piece_row + r
+    nc = st.session_state.piece_col + c
+    if 0 <= nr < height and 0 <= nc < width:
+        display_gri
