@@ -51,6 +51,7 @@ if new_x >= st.session_state.width:
 if (new_x, st.session_state.player_y) in st.session_state.platforms:
     new_x = st.session_state.player_x
 st.session_state.player_x = new_x
+st.session_state.move = 0
 st.session_state.vy = st.session_state.vy + 1
 if st.session_state.vy > 2:
     st.session_state.vy = 2
@@ -61,25 +62,22 @@ if new_y >= st.session_state.height - 1:
     st.session_state.vy = 0
     landed = True
 else:
-    for (px, py) in st.session_state.platforms:
+    for px, py in st.session_state.platforms:
         if st.session_state.vy > 0 and st.session_state.player_y < py and new_y >= py and st.session_state.player_x == px:
             new_y = py
             st.session_state.vy = 0
             landed = True
             break
-if landed:
-    st.session_state.on_ground = True
-else:
-    st.session_state.on_ground = False
+st.session_state.on_ground = landed
 st.session_state.player_y = new_y
 if st.session_state.player_x > st.session_state.max_x:
     st.session_state.max_x = st.session_state.player_x
     st.session_state.score = st.session_state.max_x
 grid = [["⬜" for _ in range(st.session_state.width)] for _ in range(st.session_state.height)]
-for (px, py) in st.session_state.platforms:
+for px, py in st.session_state.platforms:
     if 0 <= py < st.session_state.height and 0 <= px < st.session_state.width:
         grid[py][px] = "🟫"
 grid[st.session_state.player_y][st.session_state.player_x] = "🤖"
 board = "\n".join("".join(row) for row in grid)
 st.code(board, language="text")
-st.write(f"Score: {st.session_state.score}")
+st.write(f"Score (furthest right): {st.session_state.score}")
