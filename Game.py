@@ -98,7 +98,7 @@ for i in range(st.session_state.paddle_height):
         grid[py2][st.session_state.board_width - 1] = "🟥"
 
 if 0 <= st.session_state.ball_y < st.session_state.board_height and 0 <= st.session_state.ball_x < st.session_state.board_width:
-    grid[st.session_state.ball_y][st.session_state.ball_x] = "⚪"
+    grid[st.session_state.ball_y][st.session_state.ball_x] = "⚫"
 
 board_string = "\n".join("".join(row) for row in grid)
 st.code(board_string, language="text")
