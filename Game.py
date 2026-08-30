@@ -5,6 +5,7 @@ st_autorefresh(interval=200, key="game_loop_ticker")
 ROWS = 15
 COLS = 30
 PADDLE_SIZE = 4
+WIN_SCORE = 5
 if 'ball_x' not in st.session_state:
     st.session_state.ball_x = COLS // 2
 if 'ball_y' not in st.session_state:
@@ -29,20 +30,32 @@ if not st.session_state.game_over:
     if st.session_state.ball_y <= 0 or st.session_state.ball_y >= ROWS - 1:
         st.session_state.ball_dy *= -1
         st.session_state.ball_y = max(0, min(ROWS - 1, st.session_state.ball_y))
-    if st.session_state.ball_x == 1:
+    if st.session_state.ball_dx == -1 and st.session_state.ball_x == 1:
         left_range = range(st.session_state.paddle_left_y, st.session_state.paddle_left_y + PADDLE_SIZE)
         if st.session_state.ball_y in left_range:
             st.session_state.ball_dx = 1
         else:
             st.session_state.score_right += 1
-            st.session_state.game_over = True
-    if st.session_state.ball_x == COLS - 2:
+            if st.session_state.score_right >= WIN_SCORE:
+                st.session_state.game_over = True
+            else:
+                st.session_state.ball_x = COLS // 2
+                st.session_state.ball_y = ROWS // 2
+                st.session_state.ball_dx = 1
+                st.session_state.ball_dy = random.choice([-1, 1])
+    if st.session_state.ball_dx == 1 and st.session_state.ball_x == COLS - 2:
         right_range = range(st.session_state.paddle_right_y, st.session_state.paddle_right_y + PADDLE_SIZE)
         if st.session_state.ball_y in right_range:
             st.session_state.ball_dx = -1
         else:
             st.session_state.score_left += 1
-            st.session_state.game_over = True
+            if st.session_state.score_left >= WIN_SCORE:
+                st.session_state.game_over = True
+            else:
+                st.session_state.ball_x = COLS // 2
+                st.session_state.ball_y = ROWS // 2
+                st.session_state.ball_dx = -1
+                st.session_state.ball_dy = random.choice([-1, 1])
     if st.session_state.ball_y > st.session_state.paddle_right_y + PADDLE_SIZE // 2 and st.session_state.paddle_right_y + PADDLE_SIZE < ROWS:
         st.session_state.paddle_right_y += 1
     elif st.session_state.ball_y < st.session_state.paddle_right_y + PADDLE_SIZE // 2 and st.session_state.paddle_right_y > 0:
@@ -62,9 +75,19 @@ if st.button("Restart", key="btn_restart"):
     st.session_state.score_right = 0
     st.session_state.game_over = False
     st.rerun()
-st.subheader(f"Score  Left: {st.session_state.score_left}  |  Right: {st.session_state.score_right}")
+st.subheader(f"Score – Left: {st.session_state.score_left} | Right: {st.session_state.score_right}")
+if st.session_state.game_over:
+    winner = "Left" if st.session_state.score_left >= WIN_SCORE else "Right"
+    st.success(f"Game Over! {winner} player wins!")
 grid = [["⬜" for _ in range(COLS)] for _ in range(ROWS)]
 for i in range(PADDLE_SIZE):
-    y_left = st.session_state.paddle_left_y + i
-    if 0 <= y_left < ROWS:
-        grid[y_left][0] = "🟦"
+    ly = st.session_state.paddle_left_y + i
+    if 0 <= ly < ROWS:
+        grid[ly][0] = "🟦"
+    ry = st.session_state.paddle_right_y + i
+    if 0 <= ry < ROWS:
+        grid[ry][COLS - 1] = "🟥"
+if 0 <= st.session_state.ball_y < ROWS and 0 <= st.session_state.ball_x < COLS:
+    grid[st.session_state.ball_y][st.session_state.ball_x] = "🏓"
+board = "\n".join("".join(row) for row in grid)
+st.code(board, language="text")
