@@ -1,62 +1,54 @@
-import random
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
+import random
 
-if "player_score" not in st.session_state:
-    st.session_state.player_score = 0
-if "computer_score" not in st.session_state:
-    st.session_state.computer_score = 0
-if "round_result" not in st.session_state:
-    st.session_state.round_result = ""
-if "player_choice" not in st.session_state:
-    st.session_state.player_choice = ""
-if "computer_choice" not in st.session_state:
-    st.session_state.computer_choice = ""
+st_autorefresh(interval=200, key="game_loop_ticker")
 
-def decide_winner(player, computer):
-    if player == computer:
-        return "Tie"
-    if (player == "Rock" and computer == "Scissors") or \
-       (player == "Paper" and computer == "Rock") or \
-       (player == "Scissors" and computer == "Paper"):
-        return "Player"
-    return "Computer"
+if 'width' not in st.session_state:
+    st.session_state.width = 20
+if 'height' not in st.session_state:
+    st.session_state.height = 10
+if 'paddle_height' not in st.session_state:
+    st.session_state.paddle_height = 3
+if 'paddle1_y' not in st.session_state:
+    st.session_state.paddle1_y = (st.session_state.height - st.session_state.paddle_height)//2
+if 'paddle2_y' not in st.session_state:
+    st.session_state.paddle2_y = (st.session_state.height - st.session_state.paddle_height)//2
+if 'ball_x' not in st.session_state:
+    st.session_state.ball_x = st.session_state.width // 2
+if 'ball_y' not in st.session_state:
+    st.session_state.ball_y = st.session_state.height // 2
+if 'ball_dx' not in st.session_state:
+    st.session_state.ball_dx = random.choice([-1, 1])
+if 'ball_dy' not in st.session_state:
+    st.session_state.ball_dy = random.choice([-1, 0, 1])
+if 'score1' not in st.session_state:
+    st.session_state.score1 = 0
+if 'score2' not in st.session_state:
+    st.session_state.score2 = 0
+if 'paddle_move' not in st.session_state:
+    st.session_state.paddle_move = 0
 
-def play_round(choice):
-    st.session_state.player_choice = choice
-    st.session_state.computer_choice = random.choice(["Rock", "Paper", "Scissors"])
-    winner = decide_winner(st.session_state.player_choice, st.session_state.computer_choice)
-    if winner == "Player":
-        st.session_state.player_score += 1
-        st.session_state.round_result = "You win!"
-    elif winner == "Computer":
-        st.session_state.computer_score += 1
-        st.session_state.round_result = "Computer wins!"
-    else:
-        st.session_state.round_result = "It's a tie!"
+if st.button("Up", key="up_btn"):
+    st.session_state.paddle_move = -1
+if st.button("Down", key="down_btn"):
+    st.session_state.paddle_move = 1
 
-def reset_game():
-    st.session_state.player_score = 0
-    st.session_state.computer_score = 0
-    st.session_state.round_result = ""
-    st.session_state.player_choice = ""
-    st.session_state.computer_choice = ""
-    st.rerun()
+new_p1 = st.session_state.paddle1_y + st.session_state.paddle_move
+st.session_state.paddle1_y = max(0, min(st.session_state.height - st.session_state.paddle_height, new_p1))
+st.session_state.paddle_move = 0
 
-st.title("Rock Paper Scissors")
-st.subheader("Score")
-st.write(f"**You:** {st.session_state.player_score}  **Computer:** {st.session_state.computer_score}")
+center_ai = st.session_state.paddle2_y + st.session_state.paddle_height // 2
+if center_ai < st.session_state.ball_y:
+    st.session_state.paddle2_y = min(st.session_state.height - st.session_state.paddle_height, st.session_state.paddle2_y + 1)
+elif center_ai > st.session_state.ball_y:
+    st.session_state.paddle2_y = max(0, st.session_state.paddle2_y - 1)
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.button("Rock", on_click=play_round, args=("Rock",), key="btn_rock")
-with col2:
-    st.button("Paper", on_click=play_round, args=("Paper",), key="btn_paper")
-with col3:
-    st.button("Scissors", on_click=play_round, args=("Scissors",), key="btn_scissors")
+st.session_state.ball_x += st.session_state.ball_dx
+st.session_state.ball_y += st.session_state.ball_dy
 
-if st.session_state.round_result:
-    st.subheader("Result")
-    st.write(f"You chose **{st.session_state.player_choice}**, computer chose **{st.session_state.computer_choice}**.")
-    st.success(st.session_state.round_result)
+if st.session_state.ball_y <= 0 or st.session_state.ball_y >= st.session_state.height - 1:
+    st.session_state.ball_dy *= -1
 
-st.button("Restart Game", on_click=reset_game, key="btn_restart")
+if st.session_state.ball_dx < 0 and st.session_state.ball_x == 1:
+    if st.session_state.paddle1_y <= st.session_state.ball_
