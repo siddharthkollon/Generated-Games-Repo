@@ -10,6 +10,7 @@ PADDLE_SIZE = 4
 EMPTY_EMOJI = "⬛"
 PADDLE_EMOJI = "🟦"
 BALL_EMOJI = "⚪"
+SPEED_FACTOR = 2
 
 if "ball_x" not in st.session_state:
     st.session_state.ball_x = WIDTH // 2
@@ -31,6 +32,8 @@ if "p1_move" not in st.session_state:
     st.session_state.p1_move = 0
 if "p2_move" not in st.session_state:
     st.session_state.p2_move = 0
+if "tick" not in st.session_state:
+    st.session_state.tick = 0
 
 def reset_ball():
     st.session_state.ball_x = WIDTH // 2
@@ -38,25 +41,25 @@ def reset_ball():
     st.session_state.ball_dx = random.choice([-1, 1])
     st.session_state.ball_dy = random.choice([-1, 0, 1])
 
-if st.session_state.ball_x < 0:
-    st.session_state.score2 += 1
-    reset_ball()
-if st.session_state.ball_x >= WIDTH:
-    st.session_state.score1 += 1
-    reset_ball()
+st.session_state.tick += 1
 
-st.session_state.ball_x += st.session_state.ball_dx
-st.session_state.ball_y += st.session_state.ball_dy
-
-if st.session_state.ball_y <= 0 or st.session_state.ball_y >= HEIGHT - 1:
-    st.session_state.ball_dy *= -1
-
-if st.session_state.ball_x == 1:
-    if st.session_state.paddle1_y <= st.session_state.ball_y < st.session_state.paddle1_y + PADDLE_SIZE:
-        st.session_state.ball_dx *= -1
-if st.session_state.ball_x == WIDTH - 2:
-    if st.session_state.paddle2_y <= st.session_state.ball_y < st.session_state.paddle2_y + PADDLE_SIZE:
-        st.session_state.ball_dx *= -1
+if st.session_state.tick % SPEED_FACTOR == 0:
+    st.session_state.ball_x += st.session_state.ball_dx
+    st.session_state.ball_y += st.session_state.ball_dy
+    if st.session_state.ball_y <= 0 or st.session_state.ball_y >= HEIGHT - 1:
+        st.session_state.ball_dy *= -1
+    if st.session_state.ball_x == 1:
+        if st.session_state.paddle1_y <= st.session_state.ball_y < st.session_state.paddle1_y + PADDLE_SIZE:
+            st.session_state.ball_dx *= -1
+    if st.session_state.ball_x == WIDTH - 2:
+        if st.session_state.paddle2_y <= st.session_state.ball_y < st.session_state.paddle2_y + PADDLE_SIZE:
+            st.session_state.ball_dx *= -1
+    if st.session_state.ball_x < 0:
+        st.session_state.score2 += 1
+        reset_ball()
+    if st.session_state.ball_x >= WIDTH:
+        st.session_state.score1 += 1
+        reset_ball()
 
 new_p1_y = st.session_state.paddle1_y + st.session_state.p1_move
 st.session_state.paddle1_y = max(0, min(HEIGHT - PADDLE_SIZE, new_p1_y))
@@ -82,6 +85,7 @@ if st.button("Restart Game", key="restart"):
     st.session_state.paddle2_y = (HEIGHT - PADDLE_SIZE) // 2
     st.session_state.score1 = 0
     st.session_state.score2 = 0
+    st.session_state.tick = 0
     st.rerun()
 
 grid = [[EMPTY_EMOJI for _ in range(WIDTH)] for _ in range(HEIGHT)]
