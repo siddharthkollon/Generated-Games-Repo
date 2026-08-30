@@ -2,92 +2,77 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import random
 st_autorefresh(interval=200, key="game_loop_ticker")
-ROWS = 15
-COLS = 30
-PADDLE_SIZE = 4
-WIN_SCORE = 5
+if 'width' not in st.session_state:
+    st.session_state.width = 20
+if 'height' not in st.session_state:
+    st.session_state.height = 10
+if 'paddle_height' not in st.session_state:
+    st.session_state.paddle_height = 3
+if 'paddle_y' not in st.session_state:
+    st.session_state.paddle_y = (st.session_state.height - st.session_state.paddle_height)//2
+if 'ai_paddle_y' not in st.session_state:
+    st.session_state.ai_paddle_y = (st.session_state.height - st.session_state.paddle_height)//2
 if 'ball_x' not in st.session_state:
-    st.session_state.ball_x = COLS // 2
+    st.session_state.ball_x = st.session_state.width // 2
 if 'ball_y' not in st.session_state:
-    st.session_state.ball_y = ROWS // 2
+    st.session_state.ball_y = st.session_state.height // 2
 if 'ball_dx' not in st.session_state:
     st.session_state.ball_dx = random.choice([-1, 1])
 if 'ball_dy' not in st.session_state:
     st.session_state.ball_dy = random.choice([-1, 1])
-if 'paddle_left_y' not in st.session_state:
-    st.session_state.paddle_left_y = ROWS // 2 - PADDLE_SIZE // 2
-if 'paddle_right_y' not in st.session_state:
-    st.session_state.paddle_right_y = ROWS // 2 - PADDLE_SIZE // 2
 if 'score_left' not in st.session_state:
     st.session_state.score_left = 0
 if 'score_right' not in st.session_state:
     st.session_state.score_right = 0
-if 'game_over' not in st.session_state:
-    st.session_state.game_over = False
-if not st.session_state.game_over:
-    st.session_state.ball_x += st.session_state.ball_dx
-    st.session_state.ball_y += st.session_state.ball_dy
-    if st.session_state.ball_y <= 0 or st.session_state.ball_y >= ROWS - 1:
-        st.session_state.ball_dy *= -1
-        st.session_state.ball_y = max(0, min(ROWS - 1, st.session_state.ball_y))
-    if st.session_state.ball_dx == -1 and st.session_state.ball_x == 1:
-        left_range = range(st.session_state.paddle_left_y, st.session_state.paddle_left_y + PADDLE_SIZE)
-        if st.session_state.ball_y in left_range:
-            st.session_state.ball_dx = 1
-        else:
-            st.session_state.score_right += 1
-            if st.session_state.score_right >= WIN_SCORE:
-                st.session_state.game_over = True
-            else:
-                st.session_state.ball_x = COLS // 2
-                st.session_state.ball_y = ROWS // 2
-                st.session_state.ball_dx = 1
-                st.session_state.ball_dy = random.choice([-1, 1])
-    if st.session_state.ball_dx == 1 and st.session_state.ball_x == COLS - 2:
-        right_range = range(st.session_state.paddle_right_y, st.session_state.paddle_right_y + PADDLE_SIZE)
-        if st.session_state.ball_y in right_range:
-            st.session_state.ball_dx = -1
-        else:
-            st.session_state.score_left += 1
-            if st.session_state.score_left >= WIN_SCORE:
-                st.session_state.game_over = True
-            else:
-                st.session_state.ball_x = COLS // 2
-                st.session_state.ball_y = ROWS // 2
-                st.session_state.ball_dx = -1
-                st.session_state.ball_dy = random.choice([-1, 1])
-    if st.session_state.ball_y > st.session_state.paddle_right_y + PADDLE_SIZE // 2 and st.session_state.paddle_right_y + PADDLE_SIZE < ROWS:
-        st.session_state.paddle_right_y += 1
-    elif st.session_state.ball_y < st.session_state.paddle_right_y + PADDLE_SIZE // 2 and st.session_state.paddle_right_y > 0:
-        st.session_state.paddle_right_y -= 1
-if st.button("⬆️", key="btn_up"):
-    st.session_state.paddle_left_y = max(0, st.session_state.paddle_left_y - 1)
-if st.button("⬇️", key="btn_down"):
-    st.session_state.paddle_left_y = min(ROWS - PADDLE_SIZE, st.session_state.paddle_left_y + 1)
-if st.button("Restart", key="btn_restart"):
-    st.session_state.ball_x = COLS // 2
-    st.session_state.ball_y = ROWS // 2
-    st.session_state.ball_dx = random.choice([-1, 1])
+if 'high_score' not in st.session_state:
+    st.session_state.high_score = 0
+ball_x = st.session_state.ball_x + st.session_state.ball_dx
+ball_y = st.session_state.ball_y + st.session_state.ball_dy
+if ball_y <= 0 or ball_y >= st.session_state.height - 1:
+    st.session_state.ball_dy *= -1
+    ball_y = st.session_state.ball_y + st.session_state.ball_dy
+if ball_x == 2 and st.session_state.ball_dx < 0:
+    if st.session_state.paddle_y <= ball_y < st.session_state.paddle_y + st.session_state.paddle_height:
+        st.session_state.ball_dx *= -1
+        ball_x = st.session_state.ball_x + st.session_state.ball_dx
+if ball_x == st.session_state.width - 3 and st.session_state.ball_dx > 0:
+    if st.session_state.ai_paddle_y <= ball_y < st.session_state.ai_paddle_y + st.session_state.paddle_height:
+        st.session_state.ball_dx *= -1
+        ball_x = st.session_state.ball_x + st.session_state.ball_dx
+if ball_y > st.session_state.ai_paddle_y + st.session_state.paddle_height // 2 and st.session_state.ai_paddle_y < st.session_state.height - st.session_state.paddle_height:
+    st.session_state.ai_paddle_y += 1
+elif ball_y < st.session_state.ai_paddle_y + st.session_state.paddle_height // 2 and st.session_state.ai_paddle_y > 0:
+    st.session_state.ai_paddle_y -= 1
+if ball_x < 0:
+    st.session_state.score_right += 1
+    ball_x = st.session_state.width // 2
+    ball_y = st.session_state.height // 2
+    st.session_state.ball_dx = 1
     st.session_state.ball_dy = random.choice([-1, 1])
-    st.session_state.paddle_left_y = ROWS // 2 - PADDLE_SIZE // 2
-    st.session_state.paddle_right_y = ROWS // 2 - PADDLE_SIZE // 2
+elif ball_x >= st.session_state.width:
+    st.session_state.score_left += 1
+    if st.session_state.score_left > st.session_state.high_score:
+        st.session_state.high_score = st.session_state.score_left
+    ball_x = st.session_state.width // 2
+    ball_y = st.session_state.height // 2
+    st.session_state.ball_dx = -1
+    st.session_state.ball_dy = random.choice([-1, 1])
+st.session_state.ball_x = ball_x
+st.session_state.ball_y = ball_y
+if st.button("⬆️ Up", key="up_btn"):
+    st.session_state.paddle_y = max(0, st.session_state.paddle_y - 1)
+if st.button("⬇️ Down", key="down_btn"):
+    st.session_state.paddle_y = min(st.session_state.height - st.session_state.paddle_height, st.session_state.paddle_y + 1)
+if st.button("🔄 Restart", key="restart_btn"):
     st.session_state.score_left = 0
     st.session_state.score_right = 0
-    st.session_state.game_over = False
+    st.session_state.paddle_y = (st.session_state.height - st.session_state.paddle_height)//2
+    st.session_state.ai_paddle_y = (st.session_state.height - st.session_state.paddle_height)//2
+    st.session_state.ball_x = st.session_state.width // 2
+    st.session_state.ball_y = st.session_state.height // 2
+    st.session_state.ball_dx = random.choice([-1, 1])
+    st.session_state.ball_dy = random.choice([-1, 1])
     st.rerun()
-st.subheader(f"Score – Left: {st.session_state.score_left} | Right: {st.session_state.score_right}")
-if st.session_state.game_over:
-    winner = "Left" if st.session_state.score_left >= WIN_SCORE else "Right"
-    st.success(f"Game Over! {winner} player wins!")
-grid = [["⬜" for _ in range(COLS)] for _ in range(ROWS)]
-for i in range(PADDLE_SIZE):
-    ly = st.session_state.paddle_left_y + i
-    if 0 <= ly < ROWS:
-        grid[ly][0] = "🟦"
-    ry = st.session_state.paddle_right_y + i
-    if 0 <= ry < ROWS:
-        grid[ry][COLS - 1] = "🟥"
-if 0 <= st.session_state.ball_y < ROWS and 0 <= st.session_state.ball_x < COLS:
-    grid[st.session_state.ball_y][st.session_state.ball_x] = "🏓"
-board = "\n".join("".join(row) for row in grid)
-st.code(board, language="text")
+grid = [[" " for _ in range(st.session_state.width)] for _ in range(st.session_state.height)]
+for i in range(st.session_state.paddle_height):
+    grid[st.session_state.paddle_y + i]
