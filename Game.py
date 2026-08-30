@@ -4,81 +4,92 @@ import random
 
 st_autorefresh(interval=200, key="game_loop_ticker")
 
-WIDTH = 10
-HEIGHT = 20
-EMPTY = 0
+WIDTH = 20
+HEIGHT = 15
+PADDLE_SIZE = 4
 EMPTY_EMOJI = "⬛"
-PIECES = {
-    "I": [
-        [(0, 1), (1, 1), (2, 1), (3, 1)],
-        [(2, 0), (2, 1), (2, 2), (2, 3)],
-    ],
-    "O": [
-        [(1, 0), (2, 0), (1, 1), (2, 1)],
-    ],
-    "T": [
-        [(1, 0), (0, 1), (1, 1), (2, 1)],
-        [(1, 0), (1, 1), (2, 1), (1, 2)],
-        [(0, 1), (1, 1), (2, 1), (1, 2)],
-        [(1, 0), (0, 1), (1, 1), (1, 2)],
-    ],
-    "S": [
-        [(1, 0), (2, 0), (0, 1), (1, 1)],
-        [(1, 0), (1, 1), (2, 1), (2, 2)],
-    ],
-    "Z": [
-        [(0, 0), (1, 0), (1, 1), (2, 1)],
-        [(2, 0), (1, 1), (2, 1), (1, 2)],
-    ],
-    "J": [
-        [(0, 0), (0, 1), (1, 1), (2, 1)],
-        [(1, 0), (2, 0), (1, 1), (1, 2)],
-        [(0, 1), (1, 1), (2, 1), (2, 2)],
-        [(1, 0), (1, 1), (0, 2), (1, 2)],
-    ],
-    "L": [
-        [(2, 0), (0, 1), (1, 1), (2, 1)],
-        [(1, 0), (1, 1), (1, 2), (2, 2)],
-        [(0, 1), (1, 1), (2, 1), (0, 2)],
-        [(0, 0), (1, 0), (1, 1), (1, 2)],
-    ],
-}
-COLOR_MAP = {
-    "I": "🟦",
-    "O": "🟨",
-    "T": "🟪",
-    "S": "🟩",
-    "Z": "🟥",
-    "J": "🟧",
-    "L": "🟫",
-}
-if "board" not in st.session_state:
-    st.session_state.board = [[EMPTY for _ in range(WIDTH)] for _ in range(HEIGHT)]
-if "piece_type" not in st.session_state:
-    st.session_state.piece_type = None
-if "piece_rotation" not in st.session_state:
-    st.session_state.piece_rotation = 0
-if "piece_x" not in st.session_state:
-    st.session_state.piece_x = 0
-if "piece_y" not in st.session_state:
-    st.session_state.piece_y = 0
-if "score" not in st.session_state:
-    st.session_state.score = 0
-if "game_over" not in st.session_state:
-    st.session_state.game_over = False
-if "move_left" not in st.session_state:
-    st.session_state.move_left = False
-if "move_right" not in st.session_state:
-    st.session_state.move_right = False
-if "rotate" not in st.session_state:
-    st.session_state.rotate = False
-if "drop" not in st.session_state:
-    st.session_state.drop = False
+PADDLE_EMOJI = "🟦"
+BALL_EMOJI = "⚪"
 
-def spawn_piece():
-    st.session_state.piece_type = random.choice(list(PIECES.keys()))
-    st.session_state.piece_rotation = 0
-    shape = PIECES[st.session_state.piece_type][0]
-    min_x = min(x for x, y in shape)
-    max_x = max(x for x, y in shape)
-    st.session_stat
+if "ball_x" not in st.session_state:
+    st.session_state.ball_x = WIDTH // 2
+if "ball_y" not in st.session_state:
+    st.session_state.ball_y = HEIGHT // 2
+if "ball_dx" not in st.session_state:
+    st.session_state.ball_dx = random.choice([-1, 1])
+if "ball_dy" not in st.session_state:
+    st.session_state.ball_dy = random.choice([-1, 0, 1])
+if "paddle1_y" not in st.session_state:
+    st.session_state.paddle1_y = (HEIGHT - PADDLE_SIZE) // 2
+if "paddle2_y" not in st.session_state:
+    st.session_state.paddle2_y = (HEIGHT - PADDLE_SIZE) // 2
+if "score1" not in st.session_state:
+    st.session_state.score1 = 0
+if "score2" not in st.session_state:
+    st.session_state.score2 = 0
+if "p1_move" not in st.session_state:
+    st.session_state.p1_move = 0
+if "p2_move" not in st.session_state:
+    st.session_state.p2_move = 0
+
+def reset_ball():
+    st.session_state.ball_x = WIDTH // 2
+    st.session_state.ball_y = HEIGHT // 2
+    st.session_state.ball_dx = random.choice([-1, 1])
+    st.session_state.ball_dy = random.choice([-1, 0, 1])
+
+if st.session_state.ball_x < 0:
+    st.session_state.score2 += 1
+    reset_ball()
+if st.session_state.ball_x >= WIDTH:
+    st.session_state.score1 += 1
+    reset_ball()
+
+st.session_state.ball_x += st.session_state.ball_dx
+st.session_state.ball_y += st.session_state.ball_dy
+
+if st.session_state.ball_y <= 0 or st.session_state.ball_y >= HEIGHT - 1:
+    st.session_state.ball_dy *= -1
+
+if st.session_state.ball_x == 1:
+    if st.session_state.paddle1_y <= st.session_state.ball_y < st.session_state.paddle1_y + PADDLE_SIZE:
+        st.session_state.ball_dx *= -1
+if st.session_state.ball_x == WIDTH - 2:
+    if st.session_state.paddle2_y <= st.session_state.ball_y < st.session_state.paddle2_y + PADDLE_SIZE:
+        st.session_state.ball_dx *= -1
+
+new_p1_y = st.session_state.paddle1_y + st.session_state.p1_move
+st.session_state.paddle1_y = max(0, min(HEIGHT - PADDLE_SIZE, new_p1_y))
+new_p2_y = st.session_state.paddle2_y + st.session_state.p2_move
+st.session_state.paddle2_y = max(0, min(HEIGHT - PADDLE_SIZE, new_p2_y))
+st.session_state.p1_move = 0
+st.session_state.p2_move = 0
+
+if st.button("↑ P1", key="p1_up"):
+    st.session_state.p1_move = -1
+if st.button("↓ P1", key="p1_down"):
+    st.session_state.p1_move = 1
+if st.button("↑ P2", key="p2_up"):
+    st.session_state.p2_move = -1
+if st.button("↓ P2", key="p2_down"):
+    st.session_state.p2_move = 1
+if st.button("Restart Game", key="restart"):
+    st.session_state.ball_x = WIDTH // 2
+    st.session_state.ball_y = HEIGHT // 2
+    st.session_state.ball_dx = random.choice([-1, 1])
+    st.session_state.ball_dy = random.choice([-1, 0, 1])
+    st.session_state.paddle1_y = (HEIGHT - PADDLE_SIZE) // 2
+    st.session_state.paddle2_y = (HEIGHT - PADDLE_SIZE) // 2
+    st.session_state.score1 = 0
+    st.session_state.score2 = 0
+    st.rerun()
+
+grid = [[EMPTY_EMOJI for _ in range(WIDTH)] for _ in range(HEIGHT)]
+for i in range(PADDLE_SIZE):
+    grid[st.session_state.paddle1_y + i][0] = PADDLE_EMOJI
+    grid[st.session_state.paddle2_y + i][WIDTH - 1] = PADDLE_EMOJI
+if 0 <= st.session_state.ball_y < HEIGHT and 0 <= st.session_state.ball_x < WIDTH:
+    grid[st.session_state.ball_y][st.session_state.ball_x] = BALL_EMOJI
+board = "\n".join("".join(row) for row in grid)
+st.code(board, language="text")
+st.write(f"Score — Player 1: {st.session_state.score1} | Player 2: {st.session_state.score2}")
