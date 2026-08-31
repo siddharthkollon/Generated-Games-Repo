@@ -49,8 +49,7 @@ def generate_piece():
     shape = shapes[piece]
     offset_x = st.session_state.board_width // 2
     offset_y = 0
-    coords = [(x + offset_x, y + offset_y) for x, y in shape]
-    st.session_state.piece_coords = coords
+    st.session_state.piece_coords = [(x + offset_x, y + offset_y) for x, y in shape]
 
 def can_move(coords):
     for x, y in coords:
@@ -67,18 +66,20 @@ def lock_piece():
 
 def clear_lines():
     new_board = []
-    lines_cleared = 0
+    lines = 0
     for row in st.session_state.board:
         if all(cell != "⬜" for cell in row):
-            lines_cleared += 1
+            lines += 1
         else:
             new_board.append(row)
-    for _ in range(lines_cleared):
+    for _ in range(lines):
         new_board.insert(0, ["⬜"] * st.session_state.board_width)
     st.session_state.board = new_board
-    st.session_state.score += lines_cleared * 100
+    st.session_state.score += lines * 100
 
 def rotate_piece():
+    if not st.session_state.piece_coords or len(st.session_state.piece_coords) < 2:
+        return
     if st.session_state.current_piece == "O":
         return
     pivot = st.session_state.piece_coords[1]
@@ -91,6 +92,9 @@ def rotate_piece():
         new_coords.append((nx, ny))
     if can_move(new_coords):
         st.session_state.piece_coords = new_coords
+
+if st.session_state.current_piece is None:
+    generate_piece()
 
 if not st.session_state.game_over:
     if st.session_state.pending_action == "LEFT":
@@ -108,9 +112,9 @@ if not st.session_state.game_over:
         if can_move(moved):
             st.session_state.piece_coords = moved
     st.session_state.pending_action = None
-    down_coords = [(x, y + 1) for x, y in st.session_state.piece_coords]
-    if can_move(down_coords):
-        st.session_state.piece_coords = down_coords
+    down = [(x, y + 1) for x, y in st.session_state.piece_coords]
+    if can_move(down):
+        st.session_state.piece_coords = down
     else:
         lock_piece()
         clear_lines()
@@ -121,32 +125,34 @@ if not st.session_state.game_over:
 st.title("🟦 Tetris")
 st.write(f"Score: {st.session_state.score}")
 
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    if st.button("←", key="left_btn"):
+c1, c2, c3, c4 = st.columns(4)
+with c1:
+    if st.button("←", key="btn_left"):
         st.session_state.pending_action = "LEFT"
-with col2:
-    if st.button("→", key="right_btn"):
+with c2:
+    if st.button("→", key="btn_right"):
         st.session_state.pending_action = "RIGHT"
-with col3:
-    if st.button("⤾", key="rotate_btn"):
+with c3:
+    if st.button("⤾", key="btn_rotate"):
         st.session_state.pending_action = "ROTATE"
-with col4:
-    if st.button("↓", key="down_btn"):
+with c4:
+    if st.button("↓", key="btn_down"):
         st.session_state.pending_action = "DOWN"
 
 if st.session_state.game_over:
     st.subheader("Game Over")
-    if st.button("Restart", key="restart_btn"):
+    if st.button("Restart", key="btn_restart"):
         st.session_state.board = [["⬜"] * st.session_state.board_width for _ in range(st.session_state.board_height)]
         st.session_state.score = 0
         st.session_state.game_over = False
+        st.session_state.current_piece = None
+        st.session_state.piece_coords = []
         generate_piece()
         st.rerun()
 else:
-    display_board = copy.deepcopy(st.session_state.board)
+    display = copy.deepcopy(st.session_state.board)
     for x, y in st.session_state.piece_coords:
         if 0 <= y < st.session_state.board_height and 0 <= x < st.session_state.board_width:
-            display_board[y][x] = st.session_state.piece_color
-    board_str = "\n".join("".join(row) for row in display_board)
+            display[y][x] = st.session_state.piece_color
+    board_str = "\n".join("".join(row) for row in display)
     st.code(board_str, language="text")
