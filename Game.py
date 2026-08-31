@@ -30,11 +30,11 @@ if 'shapes' not in st.session_state:
     ]
 if 'colors' not in st.session_state:
     st.session_state.colors = ["⬜","🟥","🟦","🟩","🟨","🟪","🟧","🟫"]
+def spawn_piece():
+    shape = random.choice(st.session_state.shapes)
+    color = random.randint(1, len(st.session_state.colors)-1)
+    return {"shape": shape, "x": 3, "y": 0, "color": color}
 if 'current_piece' not in st.session_state:
-    def spawn_piece():
-        shape = random.choice(st.session_state.shapes)
-        color = random.randint(1, len(st.session_state.colors)-1)
-        return {"shape": shape, "x": 3, "y": 0, "color": color}
     st.session_state.current_piece = spawn_piece()
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -114,4 +114,8 @@ if not st.session_state.game_over:
         y = piece["y"] + sy
         if 0 <= y < 20 and 0 <= x < 10:
             display_board[y][x] = piece["color"]
-board_str = "\n".join("".join(st.session_state.color
+board_str = "\n".join("".join(st.session_state.colors[cell] for cell in row) for row in display_board)
+st.code(board_str, language="text")
+st.write(f"Score: {st.session_state.score}")
+if st.session_state.game_over:
+    st.write("Game Over! Press Restart to play again.")
