@@ -1,7 +1,6 @@
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import random
-import copy
 st_autorefresh(interval=200, key="game_loop_ticker")
 if 'board' not in st.session_state:
     st.session_state.board = [["⬛" for _ in range(10)] for _ in range(20)]
@@ -109,4 +108,16 @@ else:
     with col2:
         if st.button("⟳", key="rotate_btn"):
             st.session_state.rotate = True
-    with col
+    with col3:
+        if st.button("→", key="right_btn"):
+            st.session_state.move = "RIGHT"
+if st.button("Restart", key="restart_btn"):
+    st.session_state.board = [["⬛" for _ in range(10)] for _ in range(20)]
+    st.session_state.piece = None
+    st.session_state.piece_x = 3
+    st.session_state.piece_y = 0
+    st.session_state.score = 0
+    st.session_state.game_over = False
+    st.session_state.move = None
+    st.session_state.rotate = False
+    st.rerun()
