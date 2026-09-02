@@ -1,94 +1,93 @@
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import random
-st_autorefresh(interval=200, key="refresh")
+st_autorefresh(interval=150, key="game_loop_ticker")
 if 'grid_width' not in st.session_state:
-    st.session_state.grid_width = 15
+    st.session_state.grid_width = 20
 if 'grid_height' not in st.session_state:
-    st.session_state.grid_height = 20
-if 'player_x' not in st.session_state:
-    st.session_state.player_x = st.session_state.grid_width // 2
-if 'bullets' not in st.session_state:
-    st.session_state.bullets = []
-if 'enemies' not in st.session_state:
-    st.session_state.enemies = []
+    st.session_state.grid_height = 15
+if 'snake' not in st.session_state:
+    start_x = st.session_state.grid_width // 2
+    start_y = st.session_state.grid_height // 2
+    st.session_state.snake = [(start_x, start_y), (start_x - 1, start_y), (start_x - 2, start_y)]
+if 'direction' not in st.session_state:
+    st.session_state.direction = "RIGHT"
+if 'food' not in st.session_state:
+    while True:
+        fx = random.randint(0, st.session_state.grid_width - 1)
+        fy = random.randint(0, st.session_state.grid_height - 1)
+        if (fx, fy) not in st.session_state.snake:
+            st.session_state.food = (fx, fy)
+            break
 if 'score' not in st.session_state:
     st.session_state.score = 0
 if 'game_over' not in st.session_state:
     st.session_state.game_over = False
-if 'tick' not in st.session_state:
-    st.session_state.tick = 0
-if 'move_dir' not in st.session_state:
-    st.session_state.move_dir = None
-if 'fire' not in st.session_state:
-    st.session_state.fire = False
 if not st.session_state.game_over:
-    if st.button("⬅️", key="btn_left"):
-        st.session_state.move_dir = "LEFT"
-    if st.button("➡️", key="btn_right"):
-        st.session_state.move_dir = "RIGHT"
-    if st.button("🔫", key="btn_fire"):
-        st.session_state.fire = True
-if st.session_state.game_over:
-    if st.button("🔄 Restart", key="btn_restart"):
-        st.session_state.player_x = st.session_state.grid_width // 2
-        st.session_state.bullets = []
-        st.session_state.enemies = []
-        st.session_state.score = 0
-        st.session_state.game_over = False
-        st.session_state.tick = 0
-        st.session_state.move_dir = None
-        st.session_state.fire = False
-        st.rerun()
-st.session_state.tick += 1
-if not st.session_state.game_over:
-    if st.session_state.move_dir == "LEFT":
-        st.session_state.player_x = max(0, st.session_state.player_x - 1)
-    if st.session_state.move_dir == "RIGHT":
-        st.session_state.player_x = min(st.session_state.grid_width - 1, st.session_state.player_x + 1)
-    st.session_state.move_dir = None
-    if st.session_state.fire:
-        st.session_state.bullets.append([st.session_state.player_x, st.session_state.grid_height - 2])
-        st.session_state.fire = False
-    new_bullets = []
-    for b in st.session_state.bullets:
-        b[1] -= 1
-        if b[1] >= 0:
-            new_bullets.append(b)
-    st.session_state.bullets = new_bullets
-    new_enemies = []
-    for e in st.session_state.enemies:
-        e[1] += 1
-        if e[1] < st.session_state.grid_height:
-            new_enemies.append(e)
-    st.session_state.enemies = new_enemies
-    hit_bullets = set()
-    hit_enemies = set()
-    for bi, b in enumerate(st.session_state.bullets):
-        for ei, e in enumerate(st.session_state.enemies):
-            if b[0] == e[0] and b[1] == e[1]:
-                hit_bullets.add(bi)
-                hit_enemies.add(ei)
-                st.session_state.score += 1
-    st.session_state.bullets = [b for i, b in enumerate(st.session_state.bullets) if i not in hit_bullets]
-    st.session_state.enemies = [e for i, e in enumerate(st.session_state.enemies) if i not in hit_enemies]
-    if st.session_state.tick % 10 == 0:
-        spawn_x = random.randint(0, st.session_state.grid_width - 1)
-        st.session_state.enemies.append([spawn_x, 0])
-    for e in st.session_state.enemies:
-        if e[1] == st.session_state.grid_height - 1:
-            st.session_state.game_over = True
-grid = [["⬛" for _ in range(st.session_state.grid_width)] for _ in range(st.session_state.grid_height)]
-if 0 <= st.session_state.player_x < st.session_state.grid_width:
-    grid[st.session_state.grid_height - 1][st.session_state.player_x] = "🚀"
-for b in st.session_state.bullets:
-    if 0 <= b[1] < st.session_state.grid_height and 0 <= b[0] < st.session_state.grid_width:
-        grid[b[1]][b[0]] = "🔺"
-for e in st.session_state.enemies:
-    if 0 <= e[1] < st.session_state.grid_height and 0 <= e[0] < st.session_state.grid_width:
-        grid[e[1]][e[0]] = "👾"
-board = "\n".join("".join(row) for row in grid)
-st.code(board, language="text")
+    dx = 0
+    dy = 0
+    if st.session_state.direction == "UP":
+        dy = -1
+    elif st.session_state.direction == "DOWN":
+        dy = 1
+    elif st.session_state.direction == "LEFT":
+        dx = -1
+    elif st.session_state.direction == "RIGHT":
+        dx = 1
+    head_x, head_y = st.session_state.snake[0]
+    new_head = (head_x + dx, head_y + dy)
+    hit_wall = not (0 <= new_head[0] < st.session_state.grid_width and 0 <= new_head[1] < st.session_state.grid_height)
+    hit_self = new_head in st.session_state.snake
+    if hit_wall or hit_self:
+        st.session_state.game_over = True
+    else:
+        st.session_state.snake.insert(0, new_head)
+        if new_head == st.session_state.food:
+            st.session_state.score += 1
+            while True:
+                fx = random.randint(0, st.session_state.grid_width - 1)
+                fy = random.randint(0, st.session_state.grid_height - 1)
+                if (fx, fy) not in st.session_state.snake:
+                    st.session_state.food = (fx, fy)
+                    break
+        else:
+            st.session_state.snake.pop()
+grid = [["⬜" for _ in range(st.session_state.grid_width)] for _ in range(st.session_state.grid_height)]
+fx, fy = st.session_state.food
+grid[fy][fx] = "🍎"
+for idx, (x, y) in enumerate(st.session_state.snake):
+    if idx == 0:
+        grid[y][x] = "🟢"
+    else:
+        grid[y][x] = "🟩"
+board_string = "\n".join("".join(row) for row in grid)
+st.code(board_string, language="text")
 st.write(f"Score: {st.session_state.score}")
 if st.session_state.game_over:
-    st.write("💥 Game Over! Press Restart to play again.")
+    st.write("Game Over! Press Restart to play again.")
+if st.button("Up", key="btn_up"):
+    if st.session_state.direction != "DOWN":
+        st.session_state.direction = "UP"
+if st.button("Down", key="btn_down"):
+    if st.session_state.direction != "UP":
+        st.session_state.direction = "DOWN"
+if st.button("Left", key="btn_left"):
+    if st.session_state.direction != "RIGHT":
+        st.session_state.direction = "LEFT"
+if st.button("Right", key="btn_right"):
+    if st.session_state.direction != "LEFT":
+        st.session_state.direction = "RIGHT"
+if st.button("Restart", key="btn_restart"):
+    start_x = st.session_state.grid_width // 2
+    start_y = st.session_state.grid_height // 2
+    st.session_state.snake = [(start_x, start_y), (start_x - 1, start_y), (start_x - 2, start_y)]
+    st.session_state.direction = "RIGHT"
+    while True:
+        fx = random.randint(0, st.session_state.grid_width - 1)
+        fy = random.randint(0, st.session_state.grid_height - 1)
+        if (fx, fy) not in st.session_state.snake:
+            st.session_state.food = (fx, fy)
+            break
+    st.session_state.score = 0
+    st.session_state.game_over = False
+    st.rerun()
