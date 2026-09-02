@@ -1,57 +1,77 @@
 import streamlit as st
-if 'board' not in st.session_state:
-    st.session_state.board = [["" for _ in range(3)] for _ in range(3)]
-if 'turn' not in st.session_state:
-    st.session_state.turn = "X"
-if 'winner' not in st.session_state:
-    st.session_state.winner = ""
-if 'x_score' not in st.session_state:
-    st.session_state.x_score = 0
-if 'o_score' not in st.session_state:
-    st.session_state.o_score = 0
-if 'draw_score' not in st.session_state:
-    st.session_state.draw_score = 0
-def check_winner(board):
-    lines = []
-    lines.extend(board)
-    lines.extend([[board[r][c] for r in range(3)] for c in range(3)])
-    lines.append([board[i][i] for i in range(3)])
-    lines.append([board[i][2 - i] for i in range(3)])
-    for line in lines:
-        if line[0] != "" and line.count(line[0]) == 3:
-            return line[0]
-    if all(board[r][c] != "" for r in range(3) for c in range(3)):
-        return "Draw"
-    return ""
-def render_board():
-    display = [["⬜" if cell == "" else ("❌" if cell == "X" else "⭕") for cell in row] for row in st.session_state.board]
-    board_str = "\n".join("".join(row) for row in display)
-    st.code(board_str, language="text")
-for r in range(3):
-    cols = st.columns(3)
-    for c in range(3):
-        with cols[c]:
-            if st.session_state.board[r][c] == "" and st.session_state.winner == "":
-                if st.button(" ", key=f"cell_{r}_{c}"):
-                    st.session_state.board[r][c] = st.session_state.turn
-                    st.session_state.winner = check_winner(st.session_state.board)
-                    if st.session_state.winner == "X":
-                        st.session_state.x_score += 1
-                    elif st.session_state.winner == "O":
-                        st.session_state.o_score += 1
-                    elif st.session_state.winner == "Draw":
-                        st.session_state.draw_score += 1
-                    else:
-                        st.session_state.turn = "O" if st.session_state.turn == "X" else "X"
-render_board()
-st.write(f"Turn: {'❌' if st.session_state.turn == 'X' else '⭕'}")
-if st.session_state.winner != "":
-    if st.session_state.winner == "Draw":
-        st.success("It's a draw!")
+from streamlit_autorefresh import st_autorefresh
+import random
+st_autorefresh(interval=200, key="game_loop")
+if 'grid_width' not in st.session_state:
+    st.session_state.grid_width = 15
+if 'grid_height' not in st.session_state:
+    st.session_state.grid_height = 15
+if 'player_x' not in st.session_state:
+    st.session_state.player_x = st.session_state.grid_width // 2
+if 'player_y' not in st.session_state:
+    st.session_state.player_y = st.session_state.grid_height // 2
+if 'food_x' not in st.session_state:
+    st.session_state.food_x = random.randint(0, st.session_state.grid_width - 1)
+if 'food_y' not in st.session_state:
+    st.session_state.food_y = random.randint(0, st.session_state.grid_height - 1)
+if 'direction' not in st.session_state:
+    st.session_state.direction = "UP"
+if 'score' not in st.session_state:
+    st.session_state.score = 0
+if 'game_over' not in st.session_state:
+    st.session_state.game_over = False
+def reset_game():
+    st.session_state.player_x = st.session_state.grid_width // 2
+    st.session_state.player_y = st.session_state.grid_height // 2
+    st.session_state.food_x = random.randint(0, st.session_state.grid_width - 1)
+    st.session_state.food_y = random.randint(0, st.session_state.grid_height - 1)
+    st.session_state.direction = "UP"
+    st.session_state.score = 0
+    st.session_state.game_over = False
+    st.rerun()
+st.button("Restart", on_click=reset_game, key="btn_restart")
+if not st.session_state.game_over:
+    if st.button("Up", key="btn_up"):
+        st.session_state.direction = "UP"
+    if st.button("Down", key="btn_down"):
+        st.session_state.direction = "DOWN"
+    if st.button("Left", key="btn_left"):
+        st.session_state.direction = "LEFT"
+    if st.button("Right", key="btn_right"):
+        st.session_state.direction = "RIGHT"
+    dx = 0
+    dy = 0
+    if st.session_state.direction == "UP":
+        dy = -1
+    elif st.session_state.direction == "DOWN":
+        dy = 1
+    elif st.session_state.direction == "LEFT":
+        dx = -1
+    elif st.session_state.direction == "RIGHT":
+        dx = 1
+    new_x = st.session_state.player_x + dx
+    new_y = st.session_state.player_y + dy
+    if 0 <= new_x < st.session_state.grid_width and 0 <= new_y < st.session_state.grid_height:
+        st.session_state.player_x = new_x
+        st.session_state.player_y = new_y
     else:
-        st.success(f"{'❌' if st.session_state.winner == 'X' else '⭕'} wins!")
-st.write(f"Score - ❌: {st.session_state.x_score}  ⭕: {st.session_state.o_score}  Draws: {st.session_state.draw_score}")
-if st.button("Restart Game", key="restart_button"):
-    st.session_state.board = [["" for _ in range(3)] for _ in range(3)]
-    st.session_state.turn = "X"
-    st.session_state.winner = ""
+        st.session_state.game_over = True
+    if st.session_state.player_x == st.session_state.food_x and st.session_state.player_y == st.session_state.food_y:
+        st.session_state.score += 1
+        while True:
+            new_fx = random.randint(0, st.session_state.grid_width - 1)
+            new_fy = random.randint(0, st.session_state.grid_height - 1)
+            if new_fx != st.session_state.player_x or new_fy != st.session_state.player_y:
+                st.session_state.food_x = new_fx
+                st.session_state.food_y = new_fy
+                break
+grid = [["⬜" for _ in range(st.session_state.grid_width)] for _ in range(st.session_state.grid_height)]
+if 0 <= st.session_state.player_y < st.session_state.grid_height and 0 <= st.session_state.player_x < st.session_state.grid_width:
+    grid[st.session_state.player_y][st.session_state.player_x] = "😀"
+if 0 <= st.session_state.food_y < st.session_state.grid_height and 0 <= st.session_state.food_x < st.session_state.grid_width:
+    grid[st.session_state.food_y][st.session_state.food_x] = "⭐"
+board = "\n".join("".join(row) for row in grid)
+st.code(board, language="text")
+st.write(f"Score: {st.session_state.score}")
+if st.session_state.game_over:
+    st.write("Game Over! Press Restart to play again.")
