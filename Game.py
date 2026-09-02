@@ -62,16 +62,16 @@ if not st.session_state.game_over:
         if e[1] < st.session_state.grid_height:
             new_enemies.append(e)
     st.session_state.enemies = new_enemies
-    hit_bullet_idxs = set()
-    hit_enemy_idxs = set()
+    hit_bullets = set()
+    hit_enemies = set()
     for bi, b in enumerate(st.session_state.bullets):
         for ei, e in enumerate(st.session_state.enemies):
             if b[0] == e[0] and b[1] == e[1]:
-                hit_bullet_idxs.add(bi)
-                hit_enemy_idxs.add(ei)
+                hit_bullets.add(bi)
+                hit_enemies.add(ei)
                 st.session_state.score += 1
-    st.session_state.bullets = [b for i, b in enumerate(st.session_state.bullets) if i not in hit_bullet_idxs]
-    st.session_state.enemies = [e for i, e in enumerate(st.session_state.enemies) if i not in hit_enemy_idxs]
+    st.session_state.bullets = [b for i, b in enumerate(st.session_state.bullets) if i not in hit_bullets]
+    st.session_state.enemies = [e for i, e in enumerate(st.session_state.enemies) if i not in hit_enemies]
     if st.session_state.tick % 10 == 0:
         spawn_x = random.randint(0, st.session_state.grid_width - 1)
         st.session_state.enemies.append([spawn_x, 0])
